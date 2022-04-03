@@ -7,31 +7,38 @@ import fs from "fs";
 const __dirname = Path.resolve();
 export const uploadSeries = async (req, res) => {
   try {
-    // console.log("post");
     const { title } = req.body;
+    
+    //File is required
     if (req.file) {
-      // Read users.json file
       var chapters = [];
+
+      //getting users data
       let { data } = await axios.get("getAllUsers");
-      // console.log(data.result);
       let users = [];
       data.result.map((res) => {
         users.push({ userId: res._id, unlockedChapters: 4 });
       });
-      // Converting to JSON
+
+      //Read users.json file and Converting to JSON
       const filePath = Path.join(__dirname, `./uploads/${req.file.filename}`);
       chapters = await JSON.parse(fs.readFileSync(filePath));
-      fs.unlink(filePath);
-      // console.log("chapters");
-      // });
-      // console.log(chapters); // Print users
+
+      //deleting file as i have the data in chapters
+      fs.unlink(filePath, (error) => {
+        if (error) {
+          console.log(error);
+          return res.json({ success: false, result: "Error" });
+        }
+      });
+
+      //creating series with all chapters and users data
       let series = await SeriesModel.create({
         title: title,
         chapters: chapters,
         userChapterStatus: users,
       });
       if (series) {
-        // console.log(series);
         return res.status(200).json({
           success: true,
           result: "file uploaded successfully",
@@ -59,20 +66,22 @@ export const uploadSeries = async (req, res) => {
 };
 export const fetchSeriesByUser = async (req, res) => {
   try {
+
+    //all series data
     let data = await SeriesModel.find({});
     let chapters = [];
-    // console.log(data);
+    
     data.map((res) => {
+
+      //data of unlockedChapters in each series for given user
       let user = res.userChapterStatus.filter((e) => {
         return e.userId == req.body.userId;
       });
-      // console.log(user);
+
       let chap = [];
-      for (
-        let j = 0;
-        j < Math.min(user[0].unlockedChapters, res.chapters.length);
-        j++
-      ) {
+
+      //pushing all unlocked chapters data in chap
+      for (let j = 0;j < user[0].unlockedChapters;j++) {
         chap.push(res.chapters[j]);
       }
       chapters.push({
@@ -82,7 +91,6 @@ export const fetchSeriesByUser = async (req, res) => {
         chapters: chap,
       });
     });
-    // console.log(chapters);
     return res.json({
       success: true,
       series: chapters,
@@ -97,6 +105,7 @@ export const fetchSeriesByUser = async (req, res) => {
 };
 export const fetchAllSeries = async (req, res) => {
   try {
+    //fetching all series data 
     let series = await SeriesModel.find({});
     if (series) {
       return res.json({
@@ -118,6 +127,7 @@ export const fetchAllSeries = async (req, res) => {
 };
 export const updateUserInSeries = async (req, res) => {
   try {
+    //when a new user is created then adding the unlockedChapters and userdId to each series
     let series = await SeriesModel.updateMany({
       $push: {
         userChapterStatus: { userId: req.body.userId, unlockedChapters: 4 },
@@ -144,9 +154,9 @@ export const updateUserInSeries = async (req, res) => {
 
 export const updateUnlockedChapters = async (req, res) => {
   try {
-    // console.log(req.body);
+    
+    //incrementing the value of unlocked chapter of particular series for a particular user
     let series = await SeriesModel.findById(req.body.seriesId);
-    // console.log(series);
     let totalChapters = series.chapters.length;
     let user = series.userChapterStatus.filter((e) => {
       return e.userId == req.body.userId;
@@ -160,11 +170,17 @@ export const updateUnlockedChapters = async (req, res) => {
         },
         { $inc: { "userChapterStatus.$.unlockedChapters": 1 } }
       );
-      // console.log(update);
+      if(update)
       return res.json({
         success: true,
         result: "Updated successfully",
       });
+      else{
+        return res.status(404).json({
+          success:false,
+          result:"Error Occurred!! Please try again."
+        })
+      }
     } else {
       return res.json({
         success: true,

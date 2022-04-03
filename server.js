@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-dotenv.config();
 import express, { json } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -7,7 +6,9 @@ import path from "path";
 // connectdb.connect();
 import connectDB from "./configs/database.js";
 import axios from "axios";
-axios.defaults.baseURL = "http://localhost:8000/user/";
+import series from "./routes/series.js";
+dotenv.config();
+axios.defaults.baseURL = process.env.AXIOS_URL;
 
 connectDB();
 const __dirname = path.resolve();
@@ -38,7 +39,6 @@ app.use((req, res, next) => {
 app.use(json());
 app.use(helmet());
 app.use(morgan("common"));
-import series from "./routes/series.js";
 app.use("/series", series);
 const PORT = process.env.PORT || 3000;
 
