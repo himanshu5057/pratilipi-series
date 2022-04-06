@@ -155,7 +155,6 @@ export const updateUserInSeries = async (req, res) => {
 
 export const updateUnlockedChapters = async (req, res) => {
   try {
-    
     //incrementing the value of unlocked chapter of particular series for a particular user
     let series = await SeriesModel.findById(req.body.seriesId);
     let totalChapters = series.chapters.length;
@@ -166,11 +165,13 @@ export const updateUnlockedChapters = async (req, res) => {
     if (alreadyUnlocked < totalChapters) {
       let update = await SeriesModel.findOneAndUpdate(
         {
-          id: req.body.seriesId,
-          userChapterStatus: { $elemMatch: { userId: req.body.userId } },
+          '_id': req.body.seriesId,
+          'userChapterStatus': { '$elemMatch': { 'userId': req.body.userId } },
         },
-        { $inc: { "userChapterStatus.$.unlockedChapters": 1 } }
+        { $inc: { "userChapterStatus.$.unlockedChapters": 1 } },
+        {new:true}
       );
+      // console.log(update);
       if(update)
       return res.json({
         success: true,
